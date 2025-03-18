@@ -1,9 +1,10 @@
 const colors = {
-    grey: (opacity = 1) => `rgba(109, 125, 154, ${opacity})`,
-    blue: (opacity = 1) => `rgba(53, 88, 225, ${opacity})`,
-    white: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-    black: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-    darkModeBlack: (opacity = 1) => `rgba(27, 27, 27, ${opacity})`,
-    darkModeBlue: (opacity = 1) => `rgba(146, 156, 241, ${opacity})`,
+    green: (opacity = 1) => `rgba(76, 175, 80, ${opacity})`, 
+    orange: (opacity = 1) => `rgba(255, 152, 0, ${opacity})`, 
+    yellow: (opacity = 1) => `rgba(255, 193, 7, ${opacity})`, 
+    white: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`, 
+    brown: (opacity = 1) => `rgba(121, 85, 72, ${opacity})`, 
+    lightGrey: (opacity = 1) => `rgba(211, 211, 211, ${opacity})`,
 }
+
 export default colors;

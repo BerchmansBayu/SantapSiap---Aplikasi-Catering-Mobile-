@@ -1,240 +1,184 @@
-import React, { useState } from 'react';
-import {ScrollView, StyleSheet,  Text, View, Image, ImageBackground, TextInput, Pressable, TouchableOpacity, FlatList} from 'react-native';
-import {Element3, Receipt21, Clock, Message, SearchNormal, Notification} from 'iconsax-react-native';import { fontType, colors } from './src/theme';
-import { CategoryList, BlogList } from './src/data';
-import { ListHorizontal, ItemSmall } from './src/components';
+import React from 'react';
+import { ScrollView, StyleSheet, Text, View, Image, TextInput, Pressable } from 'react-native';
+import { Element3, SearchNormal, HambergerMenu, ShoppingCart } from 'iconsax-react-native';
+import { fontType, colors } from './src/theme';
 
 export default function App() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>WOCO.</Text>
-        <Notification color={colors.black()} variant="Linear" size={24} />
+        <Element3 color={colors.green()} variant="Linear" size={28} />
+        <Text style={styles.title}>SantapSiap</Text>
+        <HambergerMenu color={colors.white()} size={28} />
       </View>
-      <View style={searchBar.container}>
-           <TextInput
-                    style={searchBar.input}
-                    placeholder="Search"
-                />
-           <Pressable style={searchBar.button}>
-                    <SearchNormal size={20} color={colors.white()} />
-         </Pressable>
+
+      <View style={styles.searchBar}>
+        <TextInput
+          style={styles.input}
+          placeholder="What do you want to eat?"
+          placeholderTextColor={colors.brown()}
+        />
+        <Pressable style={styles.button}>
+          <SearchNormal size={24} color={colors.white()} />
+        </Pressable>
       </View>
-      <View style={styles.listCategory}>
-        <FlatListCategory />
+
+      <View style={styles.mealOptions}>
+        <Text style={styles.mealTitle}>Today's Meal</Text>
+        <View style={styles.mealButtons}>
+          <Pressable style={styles.mealButton}><Text>Breakfast</Text></Pressable>
+          <Pressable style={styles.selectedMealButton}><Text style={styles.selectedMealText}>Lunch</Text></Pressable>
+          <Pressable style={styles.mealButton}><Text>Dinner</Text></Pressable>
+        </View>
       </View>
-      <ListBlog />
+
+      <ListFood />
     </View>
   );
 }
 
-const searchBar = StyleSheet.create({
-  container: {
-    marginHorizontal: 24,
-    backgroundColor: colors.grey(0.03),
-    borderColor: colors.grey(0.2),
-    borderRadius: 10,
-    borderWidth: 1,
-    flexDirection: 'row',
-  },
-  input: {
-    height: 40,
-    padding: 10,
-    width: '90%',
-  },
-  button: {
-    backgroundColor: colors.blue(),
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: 40,
-    width: 40,
-    borderTopRightRadius: 10,
-    borderBottomRightRadius: 10,
-  },
-});
+// List of food items
+const ListFood = () => {
+  return (
+    <ScrollView>
+      <View style={styles.itemVertical}>
+        {[{
+          name: 'Chicken Biryani',
+          price: 'Rp25.000',
+          oldPrice: 'Rp35.000',
+          image: 'https://c.ndtvimg.com/2019-07/3j3eg3a_chicken_625x300_05_July_19.jpg'
+        }, {
+          name: 'Rice With Curry',
+          price: 'Rp15.000',
+          oldPrice: 'Rp20.000',
+          image: 'https://www.budgetbytes.com/wp-content/uploads/2017/12/Kimchi-Fried-Rice-V1.jpg'
+        }].map((food, index) => (
+          <View key={index} style={styles.cardItem}>
+            <Image
+              style={styles.cardImage}
+              source={{ uri: food.image }} />
+            <View style={styles.cardContent}>
+              <Text style={styles.cardTitle}>{food.name}</Text>
+              <Text style={styles.cardText}>{food.price} <Text style={{ textDecorationLine: 'line-through' }}>{food.oldPrice}</Text></Text>
+              <Pressable style={styles.orderButton}><Text style={styles.orderText}>Order Now</Text></Pressable>
+            </View>
+          </View>
+        ))}
+      </View>
+    </ScrollView>
+  );
+};
 
+// Style Definitions
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.white(),
   },
   header: {
-    paddingHorizontal: 24,
-    justifyContent: 'space-between',
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    height:52,
+    height: 60,
+    paddingHorizontal: 20,
+    backgroundColor: colors.green(),
     elevation: 8,
-    paddingTop:8,
-    paddingBottom:4
   },
   title: {
-    fontSize: 20,
+    fontSize: 26,
     fontFamily: fontType['Pjs-ExtraBold'],
-    color: colors.black(),
+    color: colors.white(),
   },
-  listCategory: {
-    paddingVertical: 10,
-  },
-  listBlog: {
-    paddingVertical: 10,
-    gap: 10,
-  },
-  listCard: {
-    paddingHorizontal: 24,
-    paddingVertical: 10,
-    gap: 15,
-  },
-});
-const category = StyleSheet.create({
-  item: {
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 25,
-    alignItems: 'center',
-    backgroundColor: colors.grey(0.08),
-  },
-  title: {
-    fontFamily: fontType['Pjs-SemiBold'],
-    fontSize: 14,
-    lineHeight: 18,
-  },
-});
-
-const ListBlog = () => {
-  const horizontalData = BlogList.slice(0, 5);
-  const verticalData = BlogList.slice(5);
-  return (
-    <ScrollView showsVerticalScrollIndicator={false}>
-      <View style={styles.listBlog}>
-        <ListHorizontal data={horizontalData} />
-        <View style={styles.listCard}>
-          {verticalData.map((item, index) => (
-            <ItemSmall item={item} key={index} />
-          ))}
-        </View>
-      </View>
-    </ScrollView>
-  );
-};
-
-
-const itemVertical = StyleSheet.create({
-  listCard: {
-    paddingHorizontal: 24,
-    paddingVertical: 10,
-    gap: 15,
-  },
-  cardItem: {
-    backgroundColor: colors.blue(0.03),
+  searchBar: {
     flexDirection: 'row',
-    borderRadius: 10,
-  },
-  cardCategory: {
-    color: colors.blue(),
-    fontSize: 10,
-    fontFamily: fontType['Pjs-SemiBold'],
-  },
-  cardTitle: {
-    fontSize: 14,
-    fontFamily: fontType['Pjs-Bold'],
-    color: colors.black(),
-  },
-  cardText: {
-    fontSize: 10,
-    fontFamily: fontType['Pjs-Medium'],
-    color: colors.blue(0.6),
-  },
-  cardImage: {
-    width: 94,
-    height: 94,
-    borderRadius: 10,
-    resizeMode: 'cover',
-  },
-  cardInfo: {
-    flexDirection: 'row',
-    gap: 5,
+    margin: 16,
     alignItems: 'center',
-  },
-  cardContent: {
-    gap: 10,
-    justifyContent: 'space-between',
-    paddingRight: 10,
-    paddingLeft: 15,
+    borderColor: colors.lightGrey(),
+    borderWidth: 1,
+    backgroundColor: colors.white(),
+    borderRadius: 12,
+    padding: 10,
+
+},
+  input: {
     flex: 1,
-    paddingVertical: 10,
+    fontSize: 16,
+    paddingHorizontal: 10,
+    color: colors.brown(),
   },
-});
-const itemHorizontal = StyleSheet.create({
+  button: {
+    backgroundColor: colors.orange(),
+    padding: 12,
+    borderRadius: 10,
+  },
+  mealOptions: {
+    padding: 16,
+  },
+  mealTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.brown(),
+  },
+  mealButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginTop: 10,
+  },
+  mealButton: {
+    padding: 12,
+    backgroundColor: colors.yellow(0.3),
+    borderRadius: 10,
+  },
+  selectedMealButton: {
+    padding: 12,
+    backgroundColor: colors.orange(),
+    borderRadius: 10,
+  },
+  selectedMealText: {
+    color: colors.white(),
+  },
+  itemVertical: {
+    padding: 16,
+  },
   cardItem: {
-    width: 280,
+    flexDirection: 'row',
+    marginBottom: 16,
+    backgroundColor: colors.white(),
+    borderRadius: 10, 
+    overflow: 'hidden',
+    padding: 12, 
+    alignItems: 'center', 
+    shadowColor: "#777",
+    elevation: 5, 
   },
+
   cardImage: {
-    width: '100%',
-    height: 200,
-    borderRadius: 5,
+    width: 110,
+    height: 110,
+    borderRadius: 12,
   },
   cardContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    padding: 15,
-  },
-  cardInfo: {
-    justifyContent: 'flex-end',
-    height: '100%',
-    gap: 10,
-    maxWidth: '60%',
+    padding: 12,
+    flex: 1,
   },
   cardTitle: {
-    fontFamily: fontType['Pjs-Bold'],
-    fontSize: 14,
-    color: colors.white(),
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.brown(),
   },
   cardText: {
-    fontSize: 10,
-    color: colors.white(),
-    fontFamily: fontType['Pjs-Medium'],
+    fontSize: 16,
+    color: colors.green(),
   },
-  cardIcon: {
-    backgroundColor: colors.white(0.33),
-    padding: 5,
-    borderColor: colors.white(),
-    borderWidth: 0.5,
-    borderRadius: 5,
+  orderButton: {
+    backgroundColor: colors.green(),
+    padding: 8,
+    alignItems: 'center',
+    marginTop: 10,
+    borderRadius: 10,
+  },
+  orderText: {
+    color: colors.white(),
+    fontSize: 16,
   },
 });
-
-
-const ItemCategory = ({item, onPress, color}) => {
-  return (
-    <TouchableOpacity onPress={onPress}>
-      <View style={category.item}>
-        <Text style={{...category.title, color}}>{item.categoryName}</Text>
-      </View>
-    </TouchableOpacity>
-  );
-};
-const FlatListCategory = () => {
-  const [selected, setSelected] = useState(1);
-  const renderItem = ({item}) => {
-    const color = item.id === selected ? colors.blue() : colors.grey();
-    return (
-      <ItemCategory
-        item={item}
-        onPress={() => setSelected(item.id)}
-        color={color}
-      />
-    );
-  };
-  return (
-    <FlatList
-      data={CategoryList}
-      keyExtractor={item => item.id}
-      renderItem={item => renderItem({...item})}
-      ItemSeparatorComponent={() => <View style={{width: 10}} />}
-      contentContainerStyle={{paddingHorizontal: 24}}
-      horizontal
-      showsHorizontalScrollIndicator={false}
-    />
-  );
-};
