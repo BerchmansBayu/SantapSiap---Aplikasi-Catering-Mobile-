@@ -1,9 +1,32 @@
-import React from 'react';
-import { ScrollView, StyleSheet, Text, View, Image, TextInput, Pressable } from 'react-native';
-import { Element3, SearchNormal, HambergerMenu, ShoppingCart } from 'iconsax-react-native';
+import React, { useState } from 'react';
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  Image,
+  TextInput,
+  Pressable,
+} from 'react-native';
+import {
+  Element3,
+  SearchNormal,
+  HambergerMenu,
+  ShoppingCart,
+} from 'iconsax-react-native';
 import { fontType, colors } from './src/theme';
+import { ListHorizontal, ItemSmall } from './src/components';
+import { foodItems } from './src/data'; // Import data makanan
 
 export default function App() {
+  const [mealType, setMealType] = useState('Lunch');
+  const [pressedOrder, setPressedOrder] = useState('');
+
+  const handleOrder = (foodName) => {
+    alert(`Order placed for ${foodName}`);
+    setPressedOrder(foodName);
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -26,50 +49,51 @@ export default function App() {
       <View style={styles.mealOptions}>
         <Text style={styles.mealTitle}>Today's Meal</Text>
         <View style={styles.mealButtons}>
-          <Pressable style={styles.mealButton}><Text>Breakfast</Text></Pressable>
-          <Pressable style={styles.selectedMealButton}><Text style={styles.selectedMealText}>Lunch</Text></Pressable>
-          <Pressable style={styles.mealButton}><Text>Dinner</Text></Pressable>
+          <Pressable
+            style={
+              mealType === 'Breakfast'
+                ? styles.selectedMealButton
+                : styles.mealButton
+            }
+            onPress={() => setMealType('Breakfast')}>
+            <Text style={styles.mealText}>Breakfast</Text>
+          </Pressable>
+          <Pressable
+            style={
+              mealType === 'Lunch' ? styles.selectedMealButton : styles.mealButton
+            }
+            onPress={() => setMealType('Lunch')}>
+            <Text style={styles.selectedMealText}>Lunch</Text>
+          </Pressable>
+          <Pressable
+            style={
+              mealType === 'Dinner' ? styles.selectedMealButton : styles.mealButton
+            }
+            onPress={() => setMealType('Dinner')}>
+            <Text style={styles.mealText}>Dinner</Text>
+          </Pressable>
         </View>
       </View>
 
-      <ListFood />
+      <ScrollView>
+        <View style={styles.listHorizontal}>
+          <ListHorizontal foodList={foodItems} />
+        </View>
+        <View style={styles.itemVertical}>
+          {foodItems.map((food, index) => (
+            <ItemSmall
+              key={index}
+              food={food}
+              onPress={() => handleOrder(food.name)}
+              isPressed={pressedOrder === food.name}
+            />
+          ))}
+        </View>
+      </ScrollView>
     </View>
   );
 }
 
-// List of food items
-const ListFood = () => {
-  return (
-    <ScrollView>
-      <View style={styles.itemVertical}>
-        {[{
-          name: 'Chicken Biryani',
-          price: 'Rp25.000',
-          oldPrice: 'Rp35.000',
-          image: 'https://c.ndtvimg.com/2019-07/3j3eg3a_chicken_625x300_05_July_19.jpg'
-        }, {
-          name: 'Rice With Curry',
-          price: 'Rp15.000',
-          oldPrice: 'Rp20.000',
-          image: 'https://www.budgetbytes.com/wp-content/uploads/2017/12/Kimchi-Fried-Rice-V1.jpg'
-        }].map((food, index) => (
-          <View key={index} style={styles.cardItem}>
-            <Image
-              style={styles.cardImage}
-              source={{ uri: food.image }} />
-            <View style={styles.cardContent}>
-              <Text style={styles.cardTitle}>{food.name}</Text>
-              <Text style={styles.cardText}>{food.price} <Text style={{ textDecorationLine: 'line-through' }}>{food.oldPrice}</Text></Text>
-              <Pressable style={styles.orderButton}><Text style={styles.orderText}>Order Now</Text></Pressable>
-            </View>
-          </View>
-        ))}
-      </View>
-    </ScrollView>
-  );
-};
-
-// Style Definitions
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -98,8 +122,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white(),
     borderRadius: 12,
     padding: 10,
-
-},
+  },
   input: {
     flex: 1,
     fontSize: 16,
@@ -137,48 +160,15 @@ const styles = StyleSheet.create({
   selectedMealText: {
     color: colors.white(),
   },
-  itemVertical: {
-    padding: 16,
-  },
-  cardItem: {
-    flexDirection: 'row',
-    marginBottom: 16,
-    backgroundColor: colors.white(),
-    borderRadius: 10, 
-    overflow: 'hidden',
-    padding: 12, 
-    alignItems: 'center', 
-    shadowColor: "#777",
-    elevation: 5, 
-  },
-
-  cardImage: {
-    width: 110,
-    height: 110,
-    borderRadius: 12,
-  },
-  cardContent: {
-    padding: 12,
-    flex: 1,
-  },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.brown(),
-  },
-  cardText: {
-    fontSize: 16,
-    color: colors.green(),
-  },
-  orderButton: {
-    backgroundColor: colors.green(),
-    padding: 8,
-    alignItems: 'center',
-    marginTop: 10,
-    borderRadius: 10,
-  },
-  orderText: {
+  mealText: {
     color: colors.white(),
-    fontSize: 16,
+  },
+  listHorizontal: {
+    height: 250,
+    
+  },
+  itemVertical: {
+    paddingHorizontal: 16,
+    marginTop: -16, // Mengurangi jarak vertikal ItemSmall
   },
 });
