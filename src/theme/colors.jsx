@@ -6,6 +6,8 @@ const colors = {
     brown: (opacity = 1) => `rgba(121, 85, 72, ${opacity})`, 
     lightGrey: (opacity = 1) => `rgba(211, 211, 211, ${opacity})`,
     black: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+    darkGrey: (opacity = 1) => `rgba(105, 105, 105, ${opacity})`,
+    red: (opacity = 1) => `rgba(244, 67, 54, ${opacity})`,
 }
 
 export default colors;
