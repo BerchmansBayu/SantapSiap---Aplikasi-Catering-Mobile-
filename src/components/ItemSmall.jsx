@@ -1,17 +1,22 @@
 import React from 'react';
-import { StyleSheet, Text, View, Image, Pressable } from 'react-native';
+import { StyleSheet, Text, View, Image, Pressable, TouchableOpacity } from 'react-native';
 import { fontType, colors } from '../theme';
+import {useNavigation} from '@react-navigation/native';
 
-const ItemSmall = ({ food, onPress, isPressed }) => {
+const ItemSmall = ({food, onPress, isPressed}) => {
+  const navigation = useNavigation();
+
   return (
-    <View style={styles.cardItem}>
-      <Image style={styles.cardImage} source={{ uri: food.image }} />
+    <TouchableOpacity
+      style={styles.cardItem}
+      onPress={() => navigation.navigate('FoodDetail', {foodId: food.id})}>
+      <Image style={styles.cardImage} source={{uri: food.image}} />
       <View style={styles.cardContent}>
-        <Text style={styles.categoryText}>{food.category}</Text> {/* Menambahkan teks kategori */}
+        <Text style={styles.categoryText}>{food.category}</Text>
         <Text style={styles.cardTitle}>{food.name}</Text>
         <Text style={styles.cardText}>
-          {food.price}
-          <Text style={{ textDecorationLine: 'line-through' }}>
+          {food.price}{' '}
+          <Text style={{textDecorationLine: 'line-through'}}>
             {food.oldPrice}
           </Text>
         </Text>
@@ -21,7 +26,7 @@ const ItemSmall = ({ food, onPress, isPressed }) => {
           <Text style={styles.orderText}>Order Now</Text>
         </Pressable>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 

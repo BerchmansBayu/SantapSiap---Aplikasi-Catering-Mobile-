@@ -1,18 +1,18 @@
 import React, { useState } from 'react';
-import {
-  StyleSheet,
-  Text,
-  View,
-  FlatList,
-  TouchableOpacity,
-} from 'react-native';
+import {StyleSheet,Text,View,FlatList,TouchableOpacity,} from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { Heart } from 'iconsax-react-native';
 import FastImage from '@d11/react-native-fast-image';
 import { fontType, colors } from '../theme';
 
-const ItemHorizontal = ({ item, isBookmarked }) => {
+const ItemHorizontal = ({ item, isBookmarked, onBookmark }) => {
+  const navigation = useNavigation();
+
   return (
-    <View style={styles.cardItem}>
+    <TouchableOpacity
+      style={styles.cardItem}
+      onPress={() => navigation.navigate('FoodDetail', { foodId: item.id })}
+      activeOpacity={0.9}>
       <Text style={styles.popularMeal}>Popular Meal</Text>
       <FastImage
         style={styles.cardImage}
@@ -26,25 +26,27 @@ const ItemHorizontal = ({ item, isBookmarked }) => {
             <Text style={styles.cardTitle}>{item.name}</Text>
             <Text style={styles.cardPrice}>{item.price}</Text>
           </View>
-          <View>
-            <View style={styles.cardIcon}>
-              <TouchableOpacity onPress={item.onPress}>
-                <Heart
-                  color={colors.white()}
-                  variant={isBookmarked ? 'Bold' : 'Linear'}
-                  size={20}
-                />
-              </TouchableOpacity>
-            </View>
+          <View style={styles.cardIcon}>
+            <TouchableOpacity
+              onPress={(e) => {
+                e.stopPropagation(); // Mencegah navigasi saat icon ditekan
+                onBookmark(item.name);
+              }}>
+              <Heart
+                color={colors.white()}
+                variant={isBookmarked ? 'Bold' : 'Linear'}
+                size={20}
+              />
+            </TouchableOpacity>
           </View>
         </View>
       </FastImage>
-    </View>
+    </TouchableOpacity>
   );
 };
 
 const ListHorizontal = ({ foodList }) => {
-  const [bookmarkedItems, setBookmarkedItems] = useState([]); // Inisialisasi sebagai array kosong
+  const [bookmarkedItems, setBookmarkedItems] = useState([]);
 
   const handleBookmark = (name) => {
     if (bookmarkedItems.includes(name)) {
@@ -58,15 +60,16 @@ const ListHorizontal = ({ foodList }) => {
     const isBookmarked = bookmarkedItems.includes(item.name);
     return (
       <ItemHorizontal
-        item={{ ...item, onPress: () => handleBookmark(item.name) }}
+        item={item}
         isBookmarked={isBookmarked}
+        onBookmark={handleBookmark}
       />
     );
   };
 
   return (
     <FlatList
-      data={foodList.map((item) => ({ ...item, isPressed: false }))}
+      data={foodList}
       horizontal
       showsHorizontalScrollIndicator={false}
       keyExtractor={(item) => item.name}
@@ -113,7 +116,10 @@ const styles = StyleSheet.create({
   },
   cardIcon: {
     backgroundColor: colors.white(0.33),
-    padding: 5,
+    width: 30, // contoh ukuran persegi
+    height: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
     borderColor: colors.white(),
     borderWidth: 0.5,
     borderRadius: 5,

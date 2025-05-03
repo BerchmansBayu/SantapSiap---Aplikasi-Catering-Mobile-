@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {StyleSheet,Text,View,Image,ScrollView,TouchableOpacity,Pressable,} from 'react-native';
 import {ArrowLeft,Star1,Heart,Minus,Add,ShoppingCart,} from 'iconsax-react-native';
 import { fontType, colors } from '../../theme'; // sesuaikan path jika perlu
+import { useNavigation } from '@react-navigation/native';
 
 const NutritionItem = ({ title, value }) => (
   <View style={styles.nutritionItem}>
@@ -38,6 +39,8 @@ const RecommendedItem = ({ item }) => (
 );
 
 const FoodDetail = () => {
+  const navigation = useNavigation();
+
   // Dummy food (tanpa route)
   const food = {
     name: 'Chicken Biryani',
@@ -100,9 +103,9 @@ const FoodDetail = () => {
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.imageContainer}>
           <Image source={{ uri: food.image }} style={styles.foodImage} />
-          <TouchableOpacity style={styles.backButton}>
-            <ArrowLeft size={24} color={colors.white()} />
-          </TouchableOpacity>
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.navigate('Home')}>
+  <ArrowLeft size={24} color={colors.white()} />
+</TouchableOpacity>
           <TouchableOpacity
             style={styles.favoriteButton}
             onPress={toggleFavorite}>

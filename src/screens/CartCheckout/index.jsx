@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import {StyleSheet,Text,View,ScrollView,Image,TouchableOpacity,Pressable,} from 'react-native';
 import {ArrowLeft,Trash, Add, Minus, Location, Clock, Wallet,} from 'iconsax-react-native';
 import { fontType, colors } from '../../theme';
+import { useNavigation } from '@react-navigation/native';
+
+
 
 const CartItem = ({ item, onIncrease, onDecrease, onRemove }) => (
   <View style={styles.cartItem}>
@@ -53,6 +56,8 @@ const DeliveryOption = ({ title, subtitle, icon, isSelected, onSelect }) => (
   );
   
   const CartScreen = () => {
+    const navigation = useNavigation();
+
     // Mock cart data
     const [cartItems, setCartItems] = useState([
       {
@@ -159,9 +164,9 @@ const DeliveryOption = ({ title, subtitle, icon, isSelected, onSelect }) => (
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity>
-            <ArrowLeft size={24} color={colors.white()} />
-          </TouchableOpacity>
+        <TouchableOpacity onPress={() => navigation.navigate('Home')}>
+  <ArrowLeft size={24} color={colors.white()} />
+</TouchableOpacity>
           <Text style={styles.headerTitle}>Your Cart</Text>
           <View style={{ width: 24 }} /> {/* Empty view for balanced header */}
         </View>

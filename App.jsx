@@ -1,5 +1,11 @@
 import * as React from 'react';
-import {CartCheckout} from './src/screens';
+import { NavigationContainer } from '@react-navigation/native';
+import Router from './src/Navigation/Router';
+
 export default function App() {
-  return <CartCheckout />;
+  return (
+    <NavigationContainer>
+      <Router/>
+    </NavigationContainer>
+  );
 }

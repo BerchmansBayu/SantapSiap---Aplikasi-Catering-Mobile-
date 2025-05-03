@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import {StyleSheet,Text,View,ScrollView,Image,TouchableOpacity,Switch,Pressable,} from 'react-native';
-import { ArrowLeft,Edit2,User,Wallet,Location,Setting2,NoteText,Heart,Global,Sun1,LogoutCurve,} from 'iconsax-react-native';
+import { Edit,Edit2,User,Wallet,Location,Setting2,NoteText,Heart,Global,Sun1,LogoutCurve,} from 'iconsax-react-native';
 import { fontType, colors } from '../../theme';
+import {useNavigation} from '@react-navigation/native';
 
 const ProfileOption = ({ icon, title, subtitle, onPress, rightElement }) => (
   <TouchableOpacity style={styles.profileOption} onPress={onPress}>
@@ -23,7 +24,8 @@ const ProfileSection = ({ title, children }) => (
 
 const ProfileScreen = () => {
   const [darkMode, setDarkMode] = useState(false);
-  
+  const navigation = useNavigation();
+
   // Mock user data
   const user = {
     name: 'Bayu Jaya',
@@ -81,9 +83,6 @@ const ProfileScreen = () => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={handleBackPress}>
-          <ArrowLeft size={24} color={colors.white()} />
-        </TouchableOpacity>
         <Text style={styles.headerTitle}>My Profile</Text>
         <View style={{ width: 24 }} /> {/* Empty view for balanced header */}
       </View>
@@ -92,19 +91,17 @@ const ProfileScreen = () => {
         <View style={styles.profileHeader}>
           <View style={styles.profileImageContainer}>
             <Image source={{ uri: user.image }} style={styles.profileImage} />
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.editProfileImageButton}
-              onPress={() => alert('Edit profile image')}
-            >
+              onPress={() => alert('Edit profile image')}>
               <Edit2 size={16} color={colors.white()} />
             </TouchableOpacity>
           </View>
           <Text style={styles.profileName}>{user.name}</Text>
           <Text style={styles.profileEmail}>{user.email}</Text>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.editProfileButton}
-            onPress={() => alert('Edit profile details')}
-          >
+            onPress={() => alert('Edit profile details')}>
             <Text style={styles.editProfileButtonText}>Edit Profile</Text>
           </TouchableOpacity>
         </View>
@@ -167,7 +164,10 @@ const ProfileScreen = () => {
                 <Switch
                   value={darkMode}
                   onValueChange={toggleDarkMode}
-                  trackColor={{ false: colors.lightGrey(), true: colors.green(0.8) }}
+                  trackColor={{
+                    false: colors.lightGrey(),
+                    true: colors.green(0.8),
+                  }}
                   thumbColor={darkMode ? colors.green() : colors.white()}
                 />
               }
@@ -187,6 +187,13 @@ const ProfileScreen = () => {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Floating Add Button */}
+      <TouchableOpacity
+        style={styles.floatingButton}
+        onPress={() => navigation.navigate('AddFoodForm')}>
+        <Edit color={colors.white()} variant="Linear" size={20} />
+      </TouchableOpacity>
     </View>
   );
 };
@@ -328,5 +335,21 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 16,
     marginLeft: 8,
+  },
+  floatingButton: {
+    backgroundColor: colors.green(),
+    padding: 15,
+    position: 'absolute',
+    bottom: 24,
+    right: 24,
+    borderRadius: 10,
+    shadowColor: colors.green(),
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+    elevation: 8,
   },
 });
