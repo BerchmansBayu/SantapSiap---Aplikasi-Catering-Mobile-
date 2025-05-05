@@ -1,9 +1,10 @@
 import React from 'react';
 import {createStackNavigator, TransitionPresets} from '@react-navigation/stack';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
-import {Home, CartCheckout, FoodDetail, UserProfile, AddFoodForm} from '../screens';
+import {Home, CartCheckout, FoodDetail, UserProfile, AddFoodForm,} from '../screens';
 import {Home2, WalletCheck, Receipt21, ProfileCircle} from 'iconsax-react-native';
 import { fontType, colors } from '../theme';
+import SearchBar from '../components/SearchBar';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -18,7 +19,7 @@ function MainApp() {
         tabBarStyle: {
           paddingBottom: 10,
           paddingTop: 10,
-          height: 60,
+          height: 80,
         },
         tabBarLabelStyle: {
           marginTop: 5,
@@ -110,8 +111,10 @@ const Router = () => {
           ...TransitionPresets.SlideFromRightIOS,
         }}
       />
+      <Stack.Screen name="Search" component={SearchBar} />
     </Stack.Navigator>
   );
+  
 };
 
 export default Router;
