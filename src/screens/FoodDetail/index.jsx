@@ -1,8 +1,10 @@
-import React, { useState, useRef } from 'react';
-import {StyleSheet, Text, View, Image, TouchableOpacity,Pressable, Animated, StatusBar,} from 'react-native';
-import {ArrowLeft,Star1,Heart,Minus,Add,ShoppingCart,Clock,Message,} from 'iconsax-react-native';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import {StyleSheet, Text, View, Image, TouchableOpacity, Pressable, Animated, StatusBar, ActivityIndicator, Alert} from 'react-native';
+import {ArrowLeft, Star1, Heart, Minus, Add, ShoppingCart, Clock, Message, More, Share} from 'iconsax-react-native';
 import { fontType, colors } from '../../theme';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import axios from 'axios';
+import ActionSheet from 'react-native-actions-sheet';
 
 const NutritionItem = ({ title, value }) => (
   <View style={styles.nutritionItem}>
@@ -40,11 +42,19 @@ const RecommendedItem = ({ item }) => (
   </TouchableOpacity>
 );
 
-const FoodDetail = () => {
+const FoodDetail = ({ route }) => {
   const navigation = useNavigation();
+  const { foodId } = route.params;
+  
+  // States
+  const [food, setFood] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [quantity, setQuantity] = useState(1);
+  const [isFavorite, setIsFavorite] = useState(false);
   
   // Animated values
   const scrollY = useRef(new Animated.Value(0)).current;
+  const actionSheetRef = useRef(null);
   
   // Animation configuration
   const headerOpacity = scrollY.interpolate({
@@ -65,21 +75,28 @@ const FoodDetail = () => {
     extrapolate: 'clamp',
   });
 
-  // Dummy food (tanpa route)
-  const food = {
-    name: 'Chicken Biryani',
-    category: 'Lunch',
-    price: 'Rp25.000',
-    oldPrice: 'Rp35.000',
-    rating: 4.8,
-    reviewCount: 245,
-    cookTime: '25 min',
-    image:
-      'https://c.ndtvimg.com/2019-07/3j3eg3a_chicken_625x300_05_July_19.jpg',
+  // Fetch food data from API
+  const getFoodById = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.get(
+        `https://6828bc036075e87073a4c99a.mockapi.io/blog/${foodId}`
+      );
+      setFood(response.data);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to fetch food details');
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const [quantity, setQuantity] = useState(1);
-  const [isFavorite, setIsFavorite] = useState(false);
+  // Use focus effect to refetch data when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      getFoodById();
+    }, [foodId])
+  );
 
   const increaseQuantity = () => setQuantity(quantity + 1);
   const decreaseQuantity = () => {
@@ -89,18 +106,50 @@ const FoodDetail = () => {
   };
 
   const toggleFavorite = () => setIsFavorite(!isFavorite);
- 
 
   const addToCart = () => {
-    alert(`Added ${quantity} ${food.name} to cart!`);
+    if (food) {
+      Alert.alert('Success', `Added ${quantity} ${food.name} to cart!`);
+    }
   };
 
+  const openActionSheet = () => {
+    actionSheetRef.current?.show();
+  };
+
+  const closeActionSheet = () => {
+    actionSheetRef.current?.hide();
+  };
+
+  const navigateEdit = () => {
+    navigation.navigate('EditFood', { foodId });
+    closeActionSheet();
+  };
+
+  const handleDelete = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.delete(
+        `https://6828bc036075e87073a4c99a.mockapi.io/blog/${foodId}`
+      );
+      if (response.status === 200) {
+        closeActionSheet();
+        Alert.alert('Success', 'Food deleted successfully');
+        navigation.goBack();
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to delete food item');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Sample data for components that don't come from API
   const reviews = [
     {
       name: 'Sarah Johnson',
       rating: 4.8,
-      comment:
-        'Absolutely delicious! The flavor is amazing and the portion size is perfect.',
+      comment: 'Absolutely delicious! The flavor is amazing and the portion size is perfect.',
       date: '2 days ago',
     },
     {
@@ -115,22 +164,39 @@ const FoodDetail = () => {
     {
       name: 'Fresh Salad',
       price: 'Rp12.000',
-      image:
-        'https://www.tasteofhome.com/wp-content/uploads/2018/01/Simple-Italian-Salad_EXPS_FT20_25957_F_0624_1.jpg',
+      image: 'https://www.tasteofhome.com/wp-content/uploads/2018/01/Simple-Italian-Salad_EXPS_FT20_25957_F_0624_1.jpg',
     },
     {
       name: 'Iced Tea',
       price: 'Rp8.000',
-      image:
-        'https://images.everydayhealth.com/images/arthritis/rheumatoid-arthritis/iced-tea-recipes-for-rasymptom-relief-1440x810.jpg?sfvrsn=e2b90dc4_5',
+      image: 'https://images.everydayhealth.com/images/arthritis/rheumatoid-arthritis/iced-tea-recipes-for-rasymptom-relief-1440x810.jpg?sfvrsn=e2b90dc4_5',
     },
     {
       name: 'French Fries',
       price: 'Rp10.000',
-      image:
-        'https://www.seriouseats.com/thmb/zTZa361CfNx6PaYwh5YVxKafCqE=/1500x0/filters:no_upscale():max_bytes(150000):strip_icc()/__opt__aboutcom__coeus__resources__content_migration__serious_eats__seriouseats.com__2018__04__20180309-french-fries-vicky-wasik-15-5a9844742c2446c7a7be9fbd41b6e27d.jpg',
+      image: 'https://www.seriouseats.com/thmb/zTZa361CfNx6PaYwh5YVxKafCqE=/1500x0/filters:no_upscale():max_bytes(150000):strip_icc()/__opt__aboutcom__coeus__resources__content_migration__serious_eats__seriouseats.com__2018__04__20180309-french-fries-vicky-wasik-15-5a9844742c2446c7a7be9fbd41b6e27d.jpg',
     },
   ];
+
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={colors.green()} />
+        <Text style={styles.loadingText}>Loading...</Text>
+      </View>
+    );
+  }
+
+  if (!food) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <Text style={styles.errorText}>Food not found</Text>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Text style={styles.backButtonText}>Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -141,19 +207,24 @@ const FoodDetail = () => {
         styles.headerBar,
         { opacity: headerOpacity }
       ]}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <ArrowLeft size={20} color={colors.brown()} />
+        </TouchableOpacity>
         <Animated.Text style={[styles.headerTitle, { opacity: headerTitleOpacity }]}>
           {food.name}
         </Animated.Text>
+        <View style={{ flexDirection: 'row', gap: 15 }}>
+          <Share color={colors.brown()} variant="Linear" size={20} />
+          <TouchableOpacity onPress={openActionSheet}>
+            <More
+              color={colors.brown()}
+              variant="Linear"
+              size={20}
+              style={{ transform: [{ rotate: '90deg' }] }}
+            />
+          </TouchableOpacity>
+        </View>
       </Animated.View>
-      
-      {/* Back Button */}
-      <View style={styles.backButtonContainer}>
-        <TouchableOpacity 
-          style={styles.backButton} 
-          onPress={() => navigation.goBack()}>
-          <ArrowLeft size={20} color={colors.brown()} />
-        </TouchableOpacity>
-      </View>
       
       <Animated.ScrollView 
         showsVerticalScrollIndicator={false}
@@ -175,11 +246,11 @@ const FoodDetail = () => {
           
           <View style={styles.badgeContainer}>
             <View style={styles.categoryBadge}>
-              <Text style={styles.categoryText}>{food.category}</Text>
+              <Text style={styles.categoryText}>{food.category?.name || 'Food'}</Text>
             </View>
             <View style={styles.timeBadge}>
               <Clock size={14} color={colors.white()} />
-              <Text style={styles.timeText}>{food.cookTime}</Text>
+              <Text style={styles.timeText}>{food.cookTime || '25 min'}</Text>
             </View>
           </View>
           
@@ -193,7 +264,6 @@ const FoodDetail = () => {
                 variant={isFavorite ? 'Bold' : 'Linear'}
               />
             </TouchableOpacity>
-          
           </View>
         </Animated.View>
 
@@ -204,13 +274,15 @@ const FoodDetail = () => {
               <Text style={styles.foodName}>{food.name}</Text>
               <View style={styles.ratingRow}>
                 <Star1 size={18} color={colors.orange()} variant="Bold" />
-                <Text style={styles.ratingText}>{food.rating}</Text>
-                <Text style={styles.reviewCount}>({food.reviewCount} reviews)</Text>
+                <Text style={styles.ratingText}>{food.rating || 4.8}</Text>
+                <Text style={styles.reviewCount}>({food.reviewCount || 245} reviews)</Text>
               </View>
             </View>
             <View style={styles.priceContainer}>
-              <Text style={styles.currentPrice}>{food.price}</Text>
-              <Text style={styles.oldPrice}>{food.oldPrice}</Text>
+              <Text style={styles.currentPrice}>Rp{food.price?.toLocaleString() || '25.000'}</Text>
+              {food.oldPrice && (
+                <Text style={styles.oldPrice}>Rp{food.oldPrice.toLocaleString()}</Text>
+              )}
             </View>
           </View>
 
@@ -218,7 +290,7 @@ const FoodDetail = () => {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Description</Text>
             <Text style={styles.description}>
-              Delicious {food.name.toLowerCase()}, a fragrant rice dish made with layers of basmati rice, spices, and marinated chicken. Prepared with premium ingredients and our chef's special recipe that ensures perfect flavor and texture in every bite. Enjoy it hot and fresh for the best experience.
+              {food.description || `Delicious ${food.name.toLowerCase()}, prepared with premium ingredients and our chef's special recipe that ensures perfect flavor and texture in every bite. Enjoy it hot and fresh for the best experience.`}
             </Text>
           </View>
 
@@ -290,7 +362,7 @@ const FoodDetail = () => {
           <View style={styles.totalContainer}>
             <Text style={styles.totalLabel}>Total Price</Text>
             <Text style={styles.totalPrice}>
-              {`Rp${(parseFloat(food.price.replace('Rp', '').replace('.', '')) * quantity).toLocaleString()}`}
+              Rp{(food.price * quantity).toLocaleString()}
             </Text>
           </View>
           <Pressable style={styles.addToCartButton} onPress={addToCart}>
@@ -299,6 +371,41 @@ const FoodDetail = () => {
           </Pressable>
         </View>
       </View>
+
+      {/* Action Sheet for Edit/Delete */}
+      <ActionSheet
+        ref={actionSheetRef}
+        containerStyle={{
+          borderTopLeftRadius: 25,
+          borderTopRightRadius: 25,
+        }}
+        indicatorStyle={{
+          width: 100,
+        }}
+        defaultOverlayOpacity={0.3}>
+        <TouchableOpacity
+          style={styles.actionSheetButton}
+          onPress={navigateEdit}>
+          <Text style={styles.actionSheetText}>Edit</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.actionSheetButton}
+          onPress={handleDelete}>
+          <Text style={styles.actionSheetText}>Delete</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.actionSheetButton}
+          onPress={closeActionSheet}>
+          <Text style={[styles.actionSheetText, { color: 'red' }]}>Cancel</Text>
+        </TouchableOpacity>
+      </ActionSheet>
+
+      {/* Loading Modal */}
+      {loading && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color={colors.green()} />
+        </View>
+      )}
     </View>
   );
 };
@@ -318,14 +425,14 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    height: 90,
+    height: 90, // Increased height for better visual balance
     backgroundColor: colors.white(),
     zIndex: 10,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'space-between', // Changed to space-between for better icon distribution
     paddingTop: 40,
-    paddingHorizontal: 50,
+    paddingHorizontal: 16, // Adjusted padding
     elevation: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -336,28 +443,13 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontFamily: fontType['Pjs-Bold'],
     color: colors.brown(),
-    textAlign: 'center',
+    // Removed textAlign: 'center' as it's now handled by space-between
   },
-  backButtonContainer: {
-    position: 'absolute',
-    top: 50,
-    left: 16,
-    zIndex: 20,
-  },
-  backButton: {
-    backgroundColor: colors.white(),
-    borderRadius: 12,
-    padding: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 5,
-  },
+  // Removed backButtonContainer and backButton as the headerBar handles back button
   imageContainer: {
     position: 'relative',
     width: '100%',
-    height: 300,
+    height: 350, // Slightly increased image height for more impact
   },
   imageOverlay: {
     position: 'absolute',
@@ -407,7 +499,7 @@ const styles = StyleSheet.create({
   actionButtonsContainer: {
     position: 'absolute',
     top: 50,
-    right: 25,
+    right: 16, // Adjusted right padding
     flexDirection: 'column',
     gap: 12,
   },
@@ -417,7 +509,7 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   contentContainer: {
-    padding: 16,
+    padding: 20, // Increased overall padding for content
     backgroundColor: colors.white(),
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
@@ -427,14 +519,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 20,
+    marginBottom: 24, // Increased margin-bottom
   },
   titleContainer: {
     flex: 1,
-    paddingRight: 8,
+    paddingRight: 16, // Increased padding
   },
   foodName: {
-    fontSize: 24,
+    fontSize: 26, // Slightly increased font size
     fontFamily: fontType['Pjs-Bold'],
     color: colors.brown(),
     marginBottom: 8,
@@ -459,7 +551,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   currentPrice: {
-    fontSize: 22,
+    fontSize: 24, // Slightly increased font size
     fontFamily: fontType['Pjs-Bold'],
     color: colors.green(),
     marginBottom: 4,
@@ -471,176 +563,177 @@ const styles = StyleSheet.create({
     textDecorationLine: 'line-through',
   },
   section: {
-    marginBottom: 24,
+    marginBottom: 28, // Increased margin-bottom for better separation
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 16, // Increased margin-bottom
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 20, // Slightly increased font size
     fontFamily: fontType['Pjs-Bold'],
     color: colors.brown(),
-    marginBottom: 12,
+    marginBottom: 0, // Removed extra margin as it's now handled by sectionHeader marginBottom
   },
   description: {
-    fontSize: 14,
+    fontSize: 15, // Slightly increased font size
     fontFamily: fontType['Pjs-Regular'],
     color: colors.grey(),
-    lineHeight: 22,
+    lineHeight: 24, // Increased line height for readability
   },
   quantitySection: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 28, // Increased margin-bottom
   },
   quantitySelector: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.lightGrey(0.1),
-    borderRadius: 12,
-    padding: 4,
+    backgroundColor: colors.lightGrey(0.15), // Slightly darker background
+    borderRadius: 15, // More rounded corners
+    padding: 6, // Increased padding
   },
   quantityButton: {
     backgroundColor: colors.white(),
-    borderRadius: 10,
-    padding: 10,
+    borderRadius: 12, // More rounded corners
+    padding: 12, // Increased padding
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
-    elevation: 2,
+    elevation: 3, // Slightly increased elevation
   },
   quantityText: {
-    fontSize: 18,
+    fontSize: 20, // Increased font size
     fontFamily: fontType['Pjs-SemiBold'],
     color: colors.brown(),
-    marginHorizontal: 20,
+    marginHorizontal: 25, // Increased horizontal margin
   },
   nutritionContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     flexWrap: 'wrap',
-    gap: 10,
+    gap: 12, // Increased gap
   },
   nutritionItem: {
     width: '48%',
     backgroundColor: colors.lightGrey(0.1),
-    padding: 16,
-    borderRadius: 12,
+    padding: 18, // Increased padding
+    borderRadius: 15, // More rounded corners
     borderWidth: 1,
-    borderColor: colors.lightGrey(0.1),
+    borderColor: colors.lightGrey(0.2), // Slightly darker border for definition
   },
   nutritionTitle: {
-    fontSize: 12,
+    fontSize: 13, // Slightly increased font size
     fontFamily: fontType['Pjs-Medium'],
     color: colors.grey(),
   },
   nutritionValue: {
-    fontSize: 16,
+    fontSize: 17, // Slightly increased font size
     fontFamily: fontType['Pjs-Bold'],
     color: colors.brown(),
-    marginTop: 4,
+    marginTop: 6, // Increased margin-top
   },
   reviewItem: {
     backgroundColor: colors.lightGrey(0.1),
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    borderRadius: 15, // More rounded corners
+    padding: 18, // Increased padding
+    marginBottom: 16, // Increased margin-bottom
     borderWidth: 1,
-    borderColor: colors.lightGrey(0.1),
+    borderColor: colors.lightGrey(0.2), // Slightly darker border for definition
   },
   reviewHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 12, // Increased margin-bottom
   },
   reviewUser: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   userAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40, // Slightly larger avatar
+    height: 40,
+    borderRadius: 20, // More rounded
     backgroundColor: colors.orange(),
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 10,
+    marginRight: 12, // Increased margin
   },
   avatarText: {
     color: colors.white(),
     fontFamily: fontType['Pjs-Bold'],
+    fontSize: 16, // Increased font size
   },
   reviewName: {
-    fontSize: 14,
+    fontSize: 15, // Slightly increased font size
     fontFamily: fontType['Pjs-SemiBold'],
     color: colors.brown(),
   },
   ratingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 164, 46, 0.1)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
+    backgroundColor: 'rgba(255, 164, 46, 0.15)', // Slightly darker background for rating
+    paddingHorizontal: 10, // Increased horizontal padding
+    paddingVertical: 5, // Increased vertical padding
+    borderRadius: 8, // More rounded corners
   },
   reviewComment: {
-    fontSize: 14,
+    fontSize: 15, // Slightly increased font size
     fontFamily: fontType['Pjs-Regular'],
     color: colors.grey(),
-    marginBottom: 8,
-    lineHeight: 20,
+    marginBottom: 10, // Increased margin-bottom
+    lineHeight: 22,
   },
   reviewDate: {
-    fontSize: 12,
+    fontSize: 13, // Slightly increased font size
     fontFamily: fontType['Pjs-Regular'],
     color: colors.grey(0.7),
   },
   seeAllButton: {
-    paddingVertical: 4,
+    paddingVertical: 6, // Increased padding
   },
   seeAllText: {
-    fontSize: 14,
+    fontSize: 15, // Slightly increased font size
     fontFamily: fontType['Pjs-SemiBold'],
     color: colors.green(),
   },
   recommendedContainer: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 16, // Increased gap between items
   },
   recommendedItem: {
-    width: 130,
-    borderRadius: 12,
+    width: 140, // Slightly wider item
+    borderRadius: 15, // More rounded corners
     backgroundColor: colors.white(),
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 3 }, // Increased shadow for more depth
+    shadowOpacity: 0.15, // Increased shadow opacity
+    shadowRadius: 6, // Increased shadow radius
+    elevation: 4, // Increased elevation
     overflow: 'hidden',
   },
   recommendedImage: {
     width: '100%',
-    height: 90,
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
+    height: 100, // Slightly taller image
+    borderTopLeftRadius: 15,
+    borderTopRightRadius: 15,
   },
   recommendedContent: {
-    padding: 10,
+    padding: 12, // Increased padding
   },
   recommendedName: {
-    fontSize: 14,
+    fontSize: 15, // Slightly increased font size
     fontFamily: fontType['Pjs-SemiBold'],
     color: colors.brown(),
-    marginBottom: 4,
+    marginBottom: 6, // Increased margin-bottom
   },
   recommendedPrice: {
-    fontSize: 12,
+    fontSize: 13, // Slightly increased font size
     fontFamily: fontType['Pjs-SemiBold'],
     color: colors.green(),
   },
@@ -651,9 +744,9 @@ const styles = StyleSheet.create({
     right: 0,
     backgroundColor: colors.white(),
     borderTopWidth: 1,
-    borderTopColor: colors.lightGrey(0.2),
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    borderTopColor: colors.lightGrey(0.25), // Slightly darker border
+    paddingVertical: 16, // Increased vertical padding
+    paddingHorizontal: 20, // Increased horizontal padding
   },
   footerContent: {
     flexDirection: 'row',
@@ -664,28 +757,70 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   totalLabel: {
-    fontSize: 12,
+    fontSize: 13, // Slightly increased font size
     fontFamily: fontType['Pjs-Regular'],
     color: colors.grey(),
   },
   totalPrice: {
-    fontSize: 18,
+    fontSize: 20, // Increased font size
     fontFamily: fontType['Pjs-Bold'],
     color: colors.brown(),
   },
   addToCartButton: {
     backgroundColor: colors.green(),
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
+    borderRadius: 15, // More rounded corners
+    paddingVertical: 14, // Increased vertical padding
+    paddingHorizontal: 24, // Increased horizontal padding
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 8,
+    gap: 10, // Increased gap
   },
   addToCartText: {
     color: colors.white(),
     fontFamily: fontType['Pjs-Bold'],
+    fontSize: 17, // Increased font size
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 999,
+  },
+  loadingText: {
+    marginTop: 10,
+    fontFamily: fontType['Pjs-Medium'],
+    color: colors.green(),
     fontSize: 16,
+  },
+  errorText: {
+    fontFamily: fontType['Pjs-SemiBold'],
+    color: colors.red(),
+    fontSize: 18,
+    marginBottom: 20,
+  },
+  backButton: {
+    backgroundColor: colors.green(),
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+  },
+  backButtonText: {
+    color: colors.white(),
+    fontFamily: fontType['Pjs-Bold'],
+    fontSize: 16,
+  },
+  actionSheetButton: {
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.lightGrey(0.2),
+    alignItems: 'center',
+  },
+  actionSheetText: {
+    fontSize: 18,
+    fontFamily: fontType['Pjs-SemiBold'],
+    color: colors.brown(),
   },
 });

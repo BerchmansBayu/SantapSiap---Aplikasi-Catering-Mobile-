@@ -1,8 +1,35 @@
-import React, { useState } from 'react';
-import {StyleSheet,Text,View,ScrollView,Image,TouchableOpacity,Switch,Pressable,} from 'react-native';
-import { Edit,Edit2,User,Wallet,Location,Setting2,NoteText,Heart,Global,Sun1,LogoutCurve,} from 'iconsax-react-native';
+import React, { useState, useCallback } from 'react';
+import {
+  StyleSheet,
+  Text,
+  View,
+  ScrollView,
+  Image,
+  TouchableOpacity,
+  Switch,
+  ActivityIndicator,
+  RefreshControl,
+  Alert,
+  Modal
+} from 'react-native';
+import {
+  Edit,
+  Edit2,
+  User,
+  Wallet,
+  Location,
+  Setting2,
+  NoteText,
+  Heart,
+  Global,
+  Sun1,
+  LogoutCurve,
+  Trash
+} from 'iconsax-react-native';
 import { fontType, colors } from '../../theme';
-import {useNavigation} from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import ItemSmallProfile from '../../components/ItemSmallProfile';
+import axios from 'axios';
 
 const ProfileOption = ({ icon, title, subtitle, onPress, rightElement }) => (
   <TouchableOpacity style={styles.profileOption} onPress={onPress}>
@@ -24,6 +51,10 @@ const ProfileSection = ({ title, children }) => (
 
 const ProfileScreen = () => {
   const [darkMode, setDarkMode] = useState(false);
+  const [foodData, setFoodData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const navigation = useNavigation();
 
   // Mock user data
@@ -62,16 +93,78 @@ const ProfileScreen = () => {
     },
   };
 
+  // Fetch food data from API
+  const getFoodData = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get('https://6828bc036075e87073a4c99a.mockapi.io/blog');
+      console.log('API Response:', response.data); // Debug log
+      setFoodData(response.data);
+    } catch (error) {
+      console.error('Error fetching food data:', error);
+      Alert.alert('Error', 'Failed to fetch food data. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle delete food item
+  const handleDeleteFood = (id) => {
+    Alert.alert(
+      'Delete Food Item',
+      'Are you sure you want to delete this food item?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => confirmDeleteFood(id),
+        },
+      ]
+    );
+  };
+
+  // Confirm and process food deletion
+  const confirmDeleteFood = async (id) => {
+    setDeleteLoading(true);
+    try {
+      const response = await axios.delete(`https://6828bc036075e87073a4c99a.mockapi.io/blog/${id}`);
+      
+      if (response.status === 200) {
+        // Remove the deleted item from state
+        setFoodData(prevData => prevData.filter(item => item.id !== id));
+        Alert.alert('Success', 'Food item deleted successfully!');
+      }
+    } catch (error) {
+      console.error('Error deleting food item:', error);
+      Alert.alert('Error', 'Failed to delete food item. Please try again.');
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  // Handle refresh
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    getFoodData().then(() => setRefreshing(false));
+  }, []);
+
+  // Use focus effect to reload data when screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      getFoodData();
+    }, [])
+  );
+
   const toggleDarkMode = () => {
     setDarkMode(!darkMode);
   };
 
   const handleLogout = () => {
-    alert('Logged out successfully');
-  };
-
-  const handleBackPress = () => {
-    alert('Back button pressed');
+    Alert.alert('Logout', 'You have been successfully logged out');
   };
 
   const EditButton = () => (
@@ -84,16 +177,21 @@ const ProfileScreen = () => {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>My Profile</Text>
-        <View style={{ width: 24 }} /> {/* Empty view for balanced header */}
+        <View style={{ width: 24 }} />
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
         <View style={styles.profileHeader}>
           <View style={styles.profileImageContainer}>
             <Image source={{ uri: user.image }} style={styles.profileImage} />
             <TouchableOpacity
               style={styles.editProfileImageButton}
-              onPress={() => alert('Edit profile image')}>
+              onPress={() => Alert.alert('Edit Profile', 'Edit profile image')}>
               <Edit2 size={16} color={colors.white()} />
             </TouchableOpacity>
           </View>
@@ -101,32 +199,64 @@ const ProfileScreen = () => {
           <Text style={styles.profileEmail}>{user.email}</Text>
           <TouchableOpacity
             style={styles.editProfileButton}
-            onPress={() => alert('Edit profile details')}>
+            onPress={() => Alert.alert('Edit Profile', 'Edit profile details')}>
             <Text style={styles.editProfileButtonText}>Edit Profile</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.profileContent}>
+          {/* My Food Items Section */}
+          <View style={styles.foodSection}>
+            <Text style={styles.sectionTitle}>My Food Items</Text>
+            
+            {loading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={colors.green()} />
+                <Text style={styles.loadingText}>Loading food items...</Text>
+              </View>
+            ) : foodData.length === 0 ? (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyStateText}>No food items yet</Text>
+                <TouchableOpacity 
+                  style={styles.addFoodButton}
+                  onPress={() => navigation.navigate('AddFoodForm')}
+                >
+                  <Text style={styles.addFoodButtonText}>Add New Food Item</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={styles.foodList}>
+                {foodData.map((item) => (
+                  <ItemSmallProfile
+                    key={item.id} 
+                    item={item} 
+                    onDelete={handleDeleteFood}
+                  />
+                ))}
+              </View>
+            )}
+          </View>
+
           <ProfileSection title="Account">
             <ProfileOption
               icon={<User size={20} color={colors.green()} />}
               title="Personal Information"
               subtitle="Name, Email, Phone"
-              onPress={() => alert('Navigate to Personal Info')}
+              onPress={() => Alert.alert('Personal Info', 'Navigate to Personal Info')}
               rightElement={<EditButton />}
             />
             <ProfileOption
               icon={<Wallet size={20} color={colors.green()} />}
               title="Payment Methods"
               subtitle={`${user.paymentMethods.length} Saved`}
-              onPress={() => alert('Navigate to Payment Methods')}
+              onPress={() => Alert.alert('Payment Methods', 'Navigate to Payment Methods')}
               rightElement={<EditButton />}
             />
             <ProfileOption
               icon={<Location size={20} color={colors.green()} />}
               title="Saved Addresses"
               subtitle={`${user.savedAddresses.length} Addresses`}
-              onPress={() => alert('Navigate to Saved Addresses')}
+              onPress={() => Alert.alert('Saved Addresses', 'Navigate to Saved Addresses')}
               rightElement={<EditButton />}
             />
           </ProfileSection>
@@ -136,21 +266,21 @@ const ProfileScreen = () => {
               icon={<NoteText size={20} color={colors.green()} />}
               title="Dietary Restrictions"
               subtitle={user.preferences.dietary.join(', ')}
-              onPress={() => alert('Navigate to Dietary Restrictions')}
+              onPress={() => Alert.alert('Dietary Restrictions', 'Navigate to Dietary Restrictions')}
               rightElement={<EditButton />}
             />
             <ProfileOption
               icon={<Heart size={20} color={colors.green()} />}
               title="Allergen Information"
               subtitle={user.preferences.allergens.join(', ')}
-              onPress={() => alert('Navigate to Allergen Information')}
+              onPress={() => Alert.alert('Allergen Information', 'Navigate to Allergen Information')}
               rightElement={<EditButton />}
             />
             <ProfileOption
               icon={<Global size={20} color={colors.green()} />}
               title="Favorite Cuisines"
               subtitle={user.preferences.favoriteCuisines.join(', ')}
-              onPress={() => alert('Navigate to Favorite Cuisines')}
+              onPress={() => Alert.alert('Favorite Cuisines', 'Navigate to Favorite Cuisines')}
               rightElement={<EditButton />}
             />
           </ProfileSection>
@@ -176,7 +306,7 @@ const ProfileScreen = () => {
               icon={<Setting2 size={20} color={colors.green()} />}
               title="Language"
               subtitle="English"
-              onPress={() => alert('Navigate to Language Settings')}
+              onPress={() => Alert.alert('Language', 'Navigate to Language Settings')}
               rightElement={<EditButton />}
             />
           </ProfileSection>
@@ -194,6 +324,14 @@ const ProfileScreen = () => {
         onPress={() => navigation.navigate('AddFoodForm')}>
         <Edit color={colors.white()} variant="Linear" size={20} />
       </TouchableOpacity>
+
+      {/* Loading overlay for deletion */}
+      <Modal visible={deleteLoading} animationType='none' transparent>
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color={colors.green()} />
+          <Text style={styles.loadingOverlayText}>Deleting...</Text>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -273,6 +411,21 @@ const styles = StyleSheet.create({
   profileContent: {
     padding: 16,
   },
+  foodSection: {
+    marginBottom: 24,
+  },
+  foodList: {
+    marginTop: 12,
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    padding: 20,
+  },
+  loadingText: {
+    marginTop: 10,
+    color: colors.darkGrey(),
+    fontSize: 14,
+  },
   profileSection: {
     marginBottom: 24,
   },
@@ -351,5 +504,40 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 4.65,
     elevation: 8,
+  },
+  loadingOverlay: {
+    flex: 1,
+    backgroundColor: colors.black(0.4),
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingOverlayText: {
+    color: colors.white(),
+    marginTop: 10,
+    fontSize: 16,
+  },
+  emptyState: {
+    alignItems: 'center',
+    padding: 20,
+    backgroundColor: colors.lightGrey(0.1),
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.lightGrey(0.5),
+    borderStyle: 'dashed',
+  },
+  emptyStateText: {
+    fontSize: 16,
+    color: colors.darkGrey(),
+    marginBottom: 12,
+  },
+  addFoodButton: {
+    backgroundColor: colors.green(),
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+  },
+  addFoodButtonText: {
+    color: colors.white(),
+    fontWeight: 'bold',
   },
 });

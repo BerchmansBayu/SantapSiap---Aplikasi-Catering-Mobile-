@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import {Animated,StyleSheet,Text,View,TextInput,Pressable,TouchableWithoutFeedback,SafeAreaView,StatusBar,} from 'react-native';
 import {Element3,SearchNormal,HambergerMenu,} from 'iconsax-react-native';
 import { fontType, colors } from '../../theme';
-import { ListHorizontal, ItemSmall } from '../../components';
+import { ListHorizontal, ItemSmallHome } from '../../components';
 import { foodItems } from '../../data'; 
 import { useNavigation } from '@react-navigation/native';
 
@@ -127,7 +127,7 @@ export default function Home() {
         
         <View style={styles.itemVertical}>
           {foodItems.map((food, index) => (
-            <ItemSmall
+            <ItemSmallHome
               key={index}
               food={food}
               onPress={() => handleOrder(food.name)}

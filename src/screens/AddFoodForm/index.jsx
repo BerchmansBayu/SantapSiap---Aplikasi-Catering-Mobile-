@@ -1,10 +1,12 @@
 import React, {useState} from 'react';
-import {View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView} from 'react-native';
+import {View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator, Modal, Alert} from 'react-native';
 import {ArrowLeft} from 'iconsax-react-native';
 import {useNavigation} from '@react-navigation/native';
 import {fontType, colors} from '../../theme';
+import axios from 'axios';
 
 const AddFoodForm = () => {
+  const [loading, setLoading] = useState(false);
   const dataCategory = [
     {id: 1, name: 'Breakfast'},
     {id: 2, name: 'Lunch'},
@@ -19,8 +21,11 @@ const AddFoodForm = () => {
     description: '',
     price: '',
     category: {},
-    totalLikes: 0,
-    totalOrders: 0,
+    rating: '0',
+    reviewCount: 0,
+    cookTime: '',
+    oldPrice: '',
+    image: '',
   });
 
   const handleChange = (key, value) => {
@@ -30,8 +35,48 @@ const AddFoodForm = () => {
     });
   };
 
-  const [image, setImage] = useState(null);
   const navigation = useNavigation();
+
+  // Function to handle food upload to API
+  const handleUpload = async () => {
+    // Check if required fields are filled
+    if (!foodData.name || !foodData.price || Object.keys(foodData.category).length === 0) {
+      Alert.alert('Validation Error', 'Please fill in all required fields (name, price, category)');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Prepare data according to schema
+      const foodPayload = {
+        name: foodData.name,
+        description: foodData.description,
+        price: parseFloat(foodData.price),
+        oldPrice: foodData.oldPrice ? parseFloat(foodData.oldPrice) : null,
+        category: foodData.category,
+        image: foodData.image,
+        rating: foodData.rating,
+        reviewCount: parseInt(foodData.reviewCount) || 0,
+        cookTime: foodData.cookTime,
+        createdAt: new Date().toISOString(),
+      };
+
+      // Use POST method to add new food item
+      const response = await axios.post('https://6828bc036075e87073a4c99a.mockapi.io/blog', foodPayload);
+      
+      // If status is 201 (Created) "Success"
+      if (response.status === 201) {
+        Alert.alert('Success', 'Food item added successfully!');
+        // Go back to previous screen
+        navigation.goBack();
+      }
+    } catch (e) {
+      // Show error
+      Alert.alert('Failed to Upload Food', `Error: ${e.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -81,9 +126,48 @@ const AddFoodForm = () => {
         </View>
         <View style={[textInput.borderDashed]}>
           <TextInput
+            placeholder="Old Price (if on discount)"
+            value={foodData.oldPrice}
+            onChangeText={text => handleChange('oldPrice', text)}
+            placeholderTextColor={colors.brown(0.6)}
+            keyboardType="numeric"
+            style={textInput.content}
+          />
+        </View>
+        <View style={[textInput.borderDashed]}>
+          <TextInput
+            placeholder="Cook Time (e.g. 15min)"
+            value={foodData.cookTime}
+            onChangeText={text => handleChange('cookTime', text)}
+            placeholderTextColor={colors.brown(0.6)}
+            style={textInput.content}
+          />
+        </View>
+        <View style={[textInput.borderDashed]}>
+          <TextInput
+            placeholder="Rating (0-5)"
+            value={foodData.rating}
+            onChangeText={text => handleChange('rating', text)}
+            placeholderTextColor={colors.brown(0.6)}
+            keyboardType="numeric"
+            style={textInput.content}
+          />
+        </View>
+        <View style={[textInput.borderDashed]}>
+          <TextInput
+            placeholder="Review Count"
+            value={String(foodData.reviewCount)}
+            onChangeText={text => handleChange('reviewCount', parseInt(text) || 0)}
+            placeholderTextColor={colors.brown(0.6)}
+            keyboardType="numeric"
+            style={textInput.content}
+          />
+        </View>
+        <View style={[textInput.borderDashed]}>
+          <TextInput
             placeholder="Image URL"
-            value={image}
-            onChangeText={text => setImage(text)}
+            value={foodData.image}
+            onChangeText={text => handleChange('image', text)}
             placeholderTextColor={colors.brown(0.6)}
             style={textInput.content}
           />
@@ -124,10 +208,16 @@ const AddFoodForm = () => {
         </View>
       </ScrollView>
       <View style={styles.bottomBar}>
-        <TouchableOpacity style={styles.button} onPress={() => {}}>
+        <TouchableOpacity style={styles.button} onPress={handleUpload}>
           <Text style={styles.buttonLabel}>Add Food</Text>
         </TouchableOpacity>
       </View>
+      {/* Loading overlay */}
+      <Modal visible={loading} animationType='none' transparent>
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color={colors.green()} />
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -180,6 +270,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: fontType['Pjs-SemiBold'],
     color: colors.white(),
+  },
+  loadingOverlay: {
+    flex: 1,
+    backgroundColor: colors.black(0.4),
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 

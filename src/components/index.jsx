@@ -1,5 +1,6 @@
-import ItemSmall from './ItemSmall';
+import ItemSmallProfile from './ItemSmallProfile';
 import ListHorizontal from './ListHorizontal';
 import SearchBar from './SearchBar';
+import ItemSmallHome from './ItemSmallHome';
 
-export { ItemSmall, ListHorizontal,SearchBar };
+export { ItemSmallProfile, ListHorizontal,SearchBar, ItemSmallHome };
