@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "420048565577",
+    "project_id": "santapsiap",
+    "storage_bucket": "santapsiap.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:420048565577:android:c62692735877bfcfb65698",
+        "android_client_info": {
+          "package_name": "com.santapsiap"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA6PaAifiBGnW_9-IJfwDjD1CU2IjOcybk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

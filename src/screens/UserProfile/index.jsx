@@ -1,35 +1,10 @@
 import React, { useState, useCallback } from 'react';
-import {
-  StyleSheet,
-  Text,
-  View,
-  ScrollView,
-  Image,
-  TouchableOpacity,
-  Switch,
-  ActivityIndicator,
-  RefreshControl,
-  Alert,
-  Modal
-} from 'react-native';
-import {
-  Edit,
-  Edit2,
-  User,
-  Wallet,
-  Location,
-  Setting2,
-  NoteText,
-  Heart,
-  Global,
-  Sun1,
-  LogoutCurve,
-  Trash
-} from 'iconsax-react-native';
+import {StyleSheet,Text,View,ScrollView,Image,TouchableOpacity,Switch,ActivityIndicator,RefreshControl,Alert,Modal} from 'react-native';
+import {Edit,Edit2,User,Wallet,Location,Setting2,NoteText,Heart,Global,Sun1,LogoutCurve,} from 'iconsax-react-native';
 import { fontType, colors } from '../../theme';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import ItemSmallProfile from '../../components/ItemSmallProfile';
-import axios from 'axios';
+import { collection, getFirestore, onSnapshot, deleteDoc, doc } from '@react-native-firebase/firestore';
 
 const ProfileOption = ({ icon, title, subtitle, onPress, rightElement }) => (
   <TouchableOpacity style={styles.profileOption} onPress={onPress}>
@@ -55,6 +30,7 @@ const ProfileScreen = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [selectedFoodId, setSelectedFoodId] = useState(null);
   const navigation = useNavigation();
 
   // Mock user data
@@ -93,23 +69,32 @@ const ProfileScreen = () => {
     },
   };
 
-  // Fetch food data from API
-  const getFoodData = async () => {
-    try {
-      setLoading(true);
-      const response = await axios.get('https://6828bc036075e87073a4c99a.mockapi.io/blog');
-      console.log('API Response:', response.data); // Debug log
-      setFoodData(response.data);
-    } catch (error) {
-      console.error('Error fetching food data:', error);
-      Alert.alert('Error', 'Failed to fetch food data. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Real-time fetch food data from Firestore
+  const getFoodData = useCallback(() => {
+    setLoading(true);
+    const unsubscribe = onSnapshot(
+      collection(getFirestore(), 'foods'),
+      (querySnapshot) => {
+        const foods = [];
+        querySnapshot.forEach((docSnap) => {
+          foods.push({ id: docSnap.id, ...docSnap.data() });
+        });
+        setFoodData(foods);
+        setLoading(false);
+        setRefreshing(false);
+      },
+      (error) => {
+        setLoading(false);
+        setRefreshing(false);
+        Alert.alert('Error', 'Failed to fetch food data.');
+      }
+    );
+    return unsubscribe;
+  }, []);
 
-  // Handle delete food item
+  // Delete food item from Firestore
   const handleDeleteFood = (id) => {
+    setSelectedFoodId(id);
     Alert.alert(
       'Delete Food Item',
       'Are you sure you want to delete this food item?',
@@ -117,6 +102,7 @@ const ProfileScreen = () => {
         {
           text: 'Cancel',
           style: 'cancel',
+          onPress: () => setSelectedFoodId(null),
         },
         {
           text: 'Delete',
@@ -127,41 +113,35 @@ const ProfileScreen = () => {
     );
   };
 
-  // Confirm and process food deletion
   const confirmDeleteFood = async (id) => {
     setDeleteLoading(true);
     try {
-      const response = await axios.delete(`https://6828bc036075e87073a4c99a.mockapi.io/blog/${id}`);
-      
-      if (response.status === 200) {
-        // Remove the deleted item from state
-        setFoodData(prevData => prevData.filter(item => item.id !== id));
-        Alert.alert('Success', 'Food item deleted successfully!');
-      }
+      await deleteDoc(doc(getFirestore(), 'foods', id));
+      // Data akan otomatis terupdate karena onSnapshot
+      Alert.alert('Success', 'Food item deleted successfully!');
     } catch (error) {
-      console.error('Error deleting food item:', error);
-      Alert.alert('Error', 'Failed to delete food item. Please try again.');
+      Alert.alert('Error', 'Failed to delete food item.');
     } finally {
       setDeleteLoading(false);
+      setSelectedFoodId(null);
     }
   };
 
-  // Handle refresh
+  // Refresh handler
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    getFoodData().then(() => setRefreshing(false));
+    // Data akan otomatis di-refresh oleh onSnapshot
   }, []);
 
-  // Use focus effect to reload data when screen is focused
+  // Use focus effect to subscribe/unsubscribe Firestore
   useFocusEffect(
     useCallback(() => {
-      getFoodData();
-    }, [])
+      const unsubscribe = getFoodData();
+      return () => unsubscribe && unsubscribe();
+    }, [getFoodData])
   );
 
-  const toggleDarkMode = () => {
-    setDarkMode(!darkMode);
-  };
+  const toggleDarkMode = () => setDarkMode(!darkMode);
 
   const handleLogout = () => {
     Alert.alert('Logout', 'You have been successfully logged out');
@@ -180,7 +160,7 @@ const ProfileScreen = () => {
         <View style={{ width: 24 }} />
       </View>
 
-      <ScrollView 
+      <ScrollView
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -208,16 +188,12 @@ const ProfileScreen = () => {
           {/* My Food Items Section */}
           <View style={styles.foodSection}>
             <Text style={styles.sectionTitle}>My Food Items</Text>
-            
             {loading ? (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={colors.green()} />
-                <Text style={styles.loadingText}>Loading food items...</Text>
-              </View>
+              <ActivityIndicator size="large" color={colors.green()} />
             ) : foodData.length === 0 ? (
               <View style={styles.emptyState}>
                 <Text style={styles.emptyStateText}>No food items yet</Text>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.addFoodButton}
                   onPress={() => navigation.navigate('AddFoodForm')}
                 >
@@ -228,8 +204,8 @@ const ProfileScreen = () => {
               <View style={styles.foodList}>
                 {foodData.map((item) => (
                   <ItemSmallProfile
-                    key={item.id} 
-                    item={item} 
+                    key={item.id}
+                    item={item}
                     onDelete={handleDeleteFood}
                   />
                 ))}
@@ -329,7 +305,6 @@ const ProfileScreen = () => {
       <Modal visible={deleteLoading} animationType='none' transparent>
         <View style={styles.loadingOverlay}>
           <ActivityIndicator size="large" color={colors.green()} />
-          <Text style={styles.loadingOverlayText}>Deleting...</Text>
         </View>
       </Modal>
     </View>
@@ -337,6 +312,9 @@ const ProfileScreen = () => {
 };
 
 export default ProfileScreen;
+
+
+
 
 const styles = StyleSheet.create({
   container: {

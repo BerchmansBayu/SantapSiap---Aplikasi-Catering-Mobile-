@@ -1,12 +1,11 @@
 import React, {useEffect, useState} from 'react';
-import {
-  View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ScrollView, ActivityIndicator, Modal, Alert
-} from 'react-native';
+import {View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator, Modal, Alert} from 'react-native';
 import {ArrowLeft} from 'iconsax-react-native';
 import {useNavigation, useRoute} from '@react-navigation/native';
 import {fontType, colors} from '../../theme';
-import axios from 'axios';
+
+// Firestore imports
+import { getFirestore, doc, getDoc, updateDoc } from '@react-native-firebase/firestore';
 
 const EditFoodForm = () => {
   const [loading, setLoading] = useState(true);
@@ -39,21 +38,28 @@ const EditFoodForm = () => {
     setFoodData({...foodData, [key]: value});
   };
 
+  // Ambil data dari Firestore
   const getFoodData = async () => {
     try {
-      const response = await axios.get(`https://6828bc036075e87073a4c99a.mockapi.io/blog/${foodId}`);
-      const data = response.data;
-      setFoodData({
-        name: data.name,
-        description: data.description,
-        price: String(data.price),
-        oldPrice: data.oldPrice ? String(data.oldPrice) : '',
-        cookTime: data.cookTime,
-        rating: String(data.rating),
-        reviewCount: data.reviewCount,
-        image: data.image,
-        category: data.category,
-      });
+      const docRef = doc(getFirestore(), 'foods', foodId);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setFoodData({
+          name: data.name || '',
+          description: data.description || '',
+          price: data.price ? String(data.price) : '',
+          oldPrice: data.oldPrice ? String(data.oldPrice) : '',
+          cookTime: data.cookTime || '',
+          rating: data.rating ? String(data.rating) : '0',
+          reviewCount: data.reviewCount || 0,
+          image: data.image || '',
+          category: data.category || {},
+        });
+      } else {
+        Alert.alert('Error', 'Food not found.');
+        navigation.goBack();
+      }
     } catch (error) {
       Alert.alert('Error', 'Failed to fetch food data.');
     } finally {
@@ -65,6 +71,7 @@ const EditFoodForm = () => {
     getFoodData();
   }, [foodId]);
 
+  // Update data ke Firestore
   const handleUpdate = async () => {
     if (!foodData.name || !foodData.price || Object.keys(foodData.category).length === 0) {
       Alert.alert('Validation Error', 'Please fill in all required fields (name, price, category)');
@@ -80,17 +87,16 @@ const EditFoodForm = () => {
         oldPrice: foodData.oldPrice ? parseFloat(foodData.oldPrice) : null,
         category: foodData.category,
         image: foodData.image,
-        rating: foodData.rating,
+        rating: parseFloat(foodData.rating),
         reviewCount: parseInt(foodData.reviewCount) || 0,
         cookTime: foodData.cookTime,
       };
 
-      const response = await axios.put(`https://6828bc036075e87073a4c99a.mockapi.io/blog/${foodId}`, payload);
+      const docRef = doc(getFirestore(), 'foods', foodId);
+      await updateDoc(docRef, payload);
 
-      if (response.status === 200) {
-        Alert.alert('Success', 'Food updated successfully!');
-        navigation.goBack();
-      }
+      Alert.alert('Success', 'Food updated successfully!');
+      navigation.goBack();
     } catch (e) {
       Alert.alert('Update Failed', `Error: ${e.message}`);
     } finally {
@@ -169,10 +175,8 @@ const EditFoodForm = () => {
     </View>
   );
 };
-
 export default EditFoodForm;
 
-// Copy style & textInput from AddFoodForm or import if shared
 const styles = StyleSheet.create({
   container: {flex: 1, backgroundColor: colors.white()},
   header: {

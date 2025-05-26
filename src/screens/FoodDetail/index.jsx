@@ -1,10 +1,12 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import {StyleSheet, Text, View, Image, TouchableOpacity, Pressable, Animated, StatusBar, ActivityIndicator, Alert} from 'react-native';
-import {ArrowLeft, Star1, Heart, Minus, Add, ShoppingCart, Clock, Message, More, Share} from 'iconsax-react-native';
+import React, { useState, useRef, useCallback } from 'react';
+import { StyleSheet, Text, View, Image, TouchableOpacity, Pressable, Animated, StatusBar, ActivityIndicator, Alert } from 'react-native';
+import { ArrowLeft, Star1, Heart, Minus, Add, ShoppingCart, Clock, Message, More, Share } from 'iconsax-react-native';
 import { fontType, colors } from '../../theme';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import axios from 'axios';
 import ActionSheet from 'react-native-actions-sheet';
+
+// Firestore imports
+import { getFirestore, doc, getDoc, deleteDoc, updateDoc } from '@react-native-firebase/firestore';
 
 const NutritionItem = ({ title, value }) => (
   <View style={styles.nutritionItem}>
@@ -45,17 +47,17 @@ const RecommendedItem = ({ item }) => (
 const FoodDetail = ({ route }) => {
   const navigation = useNavigation();
   const { foodId } = route.params;
-  
+
   // States
   const [food, setFood] = useState(null);
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
   const [isFavorite, setIsFavorite] = useState(false);
-  
+
   // Animated values
   const scrollY = useRef(new Animated.Value(0)).current;
   const actionSheetRef = useRef(null);
-  
+
   // Animation configuration
   const headerOpacity = scrollY.interpolate({
     inputRange: [0, 100, 150],
@@ -68,21 +70,25 @@ const FoodDetail = ({ route }) => {
     outputRange: [1.2, 1],
     extrapolate: 'clamp',
   });
-  
+
   const headerTitleOpacity = scrollY.interpolate({
     inputRange: [150, 200],
     outputRange: [0, 1],
     extrapolate: 'clamp',
   });
 
-  // Fetch food data from API
+  // Fetch food data from Firestore
   const getFoodById = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(
-        `https://6828bc036075e87073a4c99a.mockapi.io/blog/${foodId}`
-      );
-      setFood(response.data);
+      const docRef = doc(getFirestore(), 'foods', foodId);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists) {
+        setFood({ id: docSnap.id, ...docSnap.data() });
+        setIsFavorite(docSnap.data().favorite ?? false);
+      } else {
+        setFood(null);
+      }
     } catch (error) {
       Alert.alert('Error', 'Failed to fetch food details');
       console.error(error);
@@ -105,7 +111,18 @@ const FoodDetail = ({ route }) => {
     }
   };
 
-  const toggleFavorite = () => setIsFavorite(!isFavorite);
+  // Update favorite status in Firestore
+  const toggleFavorite = async () => {
+    if (!food) return;
+    const newFavorite = !isFavorite;
+    setIsFavorite(newFavorite);
+    try {
+      const docRef = doc(getFirestore(), 'foods', foodId);
+      await updateDoc(docRef, { favorite: newFavorite });
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update favorite status');
+    }
+  };
 
   const addToCart = () => {
     if (food) {
@@ -126,17 +143,14 @@ const FoodDetail = ({ route }) => {
     closeActionSheet();
   };
 
+  // Delete food from Firestore
   const handleDelete = async () => {
     setLoading(true);
     try {
-      const response = await axios.delete(
-        `https://6828bc036075e87073a4c99a.mockapi.io/blog/${foodId}`
-      );
-      if (response.status === 200) {
-        closeActionSheet();
-        Alert.alert('Success', 'Food deleted successfully');
-        navigation.goBack();
-      }
+      await deleteDoc(doc(getFirestore(), 'foods', foodId));
+      closeActionSheet();
+      Alert.alert('Success', 'Food deleted successfully');
+      navigation.goBack();
     } catch (error) {
       Alert.alert('Error', 'Failed to delete food item');
     } finally {
@@ -144,7 +158,7 @@ const FoodDetail = ({ route }) => {
     }
   };
 
-  // Sample data for components that don't come from API
+  // Sample data for reviews and recommended dishes
   const reviews = [
     {
       name: 'Sarah Johnson',
@@ -201,7 +215,7 @@ const FoodDetail = ({ route }) => {
   return (
     <View style={styles.container}>
       <StatusBar translucent backgroundColor="transparent" barStyle="dark-content" />
-      
+
       {/* Animated Header */}
       <Animated.View style={[
         styles.headerBar,
@@ -225,35 +239,35 @@ const FoodDetail = ({ route }) => {
           </TouchableOpacity>
         </View>
       </Animated.View>
-      
-      <Animated.ScrollView 
+
+      <Animated.ScrollView
         showsVerticalScrollIndicator={false}
         onScroll={Animated.event(
-          [{nativeEvent: {contentOffset: {y: scrollY}}}],
-          {useNativeDriver: true},
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: true },
         )}
         scrollEventThrottle={16}
         contentContainerStyle={styles.scrollContent}>
-        
+
         {/* Hero Image Section */}
-        <Animated.View 
+        <Animated.View
           style={[
             styles.imageContainer,
             { transform: [{ scale: imageScale }] }
           ]}>
           <Image source={{ uri: food.image }} style={styles.foodImage} />
           <View style={styles.imageOverlay} />
-          
+
           <View style={styles.badgeContainer}>
             <View style={styles.categoryBadge}>
-              <Text style={styles.categoryText}>{food.category?.name || 'Food'}</Text>
+              <Text style={styles.categoryText}>{food.category || 'Food'}</Text>
             </View>
             <View style={styles.timeBadge}>
               <Clock size={14} color={colors.white()} />
               <Text style={styles.timeText}>{food.cookTime || '25 min'}</Text>
             </View>
           </View>
-          
+
           <View style={styles.actionButtonsContainer}>
             <TouchableOpacity
               style={styles.actionButton}
@@ -350,7 +364,7 @@ const FoodDetail = ({ route }) => {
               ))}
             </View>
           </View>
-          
+
           {/* Space for footer */}
           <View style={{ height: 70 }} />
         </View>
