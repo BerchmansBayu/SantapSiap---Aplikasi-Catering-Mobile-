@@ -5,6 +5,7 @@ import {useNavigation} from '@react-navigation/native';
 import {fontType, colors} from '../../theme';
 import {addDoc, collection, getFirestore} from '@react-native-firebase/firestore';
 import FastImage from '@d11/react-native-fast-image';
+import notifee from '@notifee/react-native'; // <--- Tambahkan ini
 
 const CATEGORY_LIST = [
   'Breakfast',
@@ -30,6 +31,31 @@ const AddFoodForm = () => {
   const [oldPrice, setOldPrice] = useState('');
   const [imageUrl, setImageUrl] = useState('');
 
+  // Fungsi untuk menampilkan notifikasi
+  async function onDisplayNotification() {
+    // Request permission (hanya perlu sekali, bisa dipindah ke root app)
+    await notifee.requestPermission();
+
+    // Create a channel (Android)
+    const channelId = await notifee.createChannel({
+      id: 'food',
+      name: 'Food Notification',
+    });
+
+    // Display a notification
+    await notifee.displayNotification({
+      title: 'Food Added',
+      body: 'New food item has been added successfully!',
+      android: {
+        channelId,
+        smallIcon: 'ic_launcher', // pastikan ada icon ini di android/app/src/main/res
+        pressAction: {
+          id: 'default',
+        },
+      },
+    });
+  }
+
   const handleUpload = async () => {
     if (!name || !description || !price || !category || !cookTime || !imageUrl) {
       Alert.alert('Error', 'Please fill all required fields and input image URL.');
@@ -50,6 +76,10 @@ const AddFoodForm = () => {
         image: imageUrl,
       });
       setLoading(false);
+
+      // Tampilkan notifikasi setelah berhasil tambah data
+      await onDisplayNotification();
+
       Alert.alert('Success', 'Food item added successfully!');
       navigation.goBack();
     } catch (error) {
@@ -58,7 +88,6 @@ const AddFoodForm = () => {
       Alert.alert('Error', 'Failed to add food item.');
     }
   };
-
   return (
     <View style={styles.container}>
       <View style={styles.header}>
